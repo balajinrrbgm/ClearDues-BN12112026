@@ -10,7 +10,7 @@ const modelResponseSchema = z.object({
 });
 
 export function aiConfigured(): boolean {
-  return Boolean(process.env.AI_API_KEY && process.env.AI_MODEL);
+  return Boolean(process.env.AZURE_AI_PROJECT_ENDPOINT?.trim() && process.env.AZURE_AI_API_KEY?.trim());
 }
 
 export async function analyzeEvidence(sources: Evidence[]): Promise<AnalysisResult> {
@@ -18,23 +18,31 @@ export async function analyzeEvidence(sources: Evidence[]): Promise<AnalysisResu
     return makeDemoAnalysis();
   }
 
-  const endpoint = process.env.AI_BASE_URL || "https://api.openai.com/v1/chat/completions";
-  const url = new URL(endpoint);
-  if (url.protocol !== "https:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
-    throw new Error("AI endpoint must use HTTPS, except for a local development server.");
+  let project: URL;
+  try {
+    project = new URL(process.env.AZURE_AI_PROJECT_ENDPOINT!.trim());
+  } catch {
+    throw new Error("Microsoft Foundry project endpoint is invalid.");
   }
+  if (project.protocol !== "https:" || !project.hostname.endsWith(".services.ai.azure.com") ||
+      !/^\/api\/projects\/[^/]+\/?$/.test(project.pathname) || project.username || project.password || project.search || project.hash) {
+    throw new Error("Use an HTTPS Microsoft Foundry project endpoint ending in /api/projects/<project-name>.");
+  }
+  const url = new URL("/openai/v1/responses", project.origin);
 
   const response = await fetch(url, {
     method: "POST",
+    redirect: "error",
     headers: {
-      Authorization: `Bearer ${process.env.AI_API_KEY}`,
+      "api-key": process.env.AZURE_AI_API_KEY!.trim(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.AI_MODEL,
-      temperature: 0.1,
-      response_format: { type: "json_object" },
-      messages: [
+      model: process.env.AZURE_AI_MODEL_DEPLOYMENT?.trim() || "gpt-6.1-terra",
+      store: false,
+      max_output_tokens: 2048,
+      text: { format: { type: "json_object" } },
+      input: [
         {
           role: "system",
           content:
@@ -43,14 +51,19 @@ export async function analyzeEvidence(sources: Evidence[]): Promise<AnalysisResu
         { role: "user", content: JSON.stringify(sources.map(({ id, title, text }) => ({ id, title, text }))) },
       ],
     }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(45_000),
   });
+  if (response.status === 429) throw new Error("AI provider quota or rate limit was exceeded. Check the provider account and try again.");
   if (!response.ok) throw new Error(`AI provider returned HTTP ${response.status}.`);
 
   const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+    status?: string;
+    output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
   };
-  const content = payload.choices?.[0]?.message?.content;
+  if (payload.status && payload.status !== "completed") throw new Error("Microsoft Foundry did not complete the AI review.");
+  const content = payload.output?.flatMap((item) => item.type === "message" ? item.content ?? [] : [])
+    .filter((item) => item.type === "output_text" && typeof item.text === "string")
+    .map((item) => item.text).join("");
   if (!content) throw new Error("AI provider returned no content.");
   const parsed = modelResponseSchema.parse(JSON.parse(content));
   const claims = validateClaims(parsed.claims as Claim[], sources);

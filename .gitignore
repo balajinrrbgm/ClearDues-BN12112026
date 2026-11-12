@@ -23,3 +23,5 @@ Thumbs.db
 
 docs/hackathon/
 docs/video/
+.vercel
+.env*

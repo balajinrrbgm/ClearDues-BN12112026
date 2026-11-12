@@ -44,9 +44,25 @@ async function paypalRequest(path: string, init: RequestInit = {}): Promise<unkn
   return body;
 }
 
-export async function createSandboxInvoice(input: InvoiceInput): Promise<unknown> {
+export function invoiceIdFromCreateResponse(response: unknown): string {
+  if (!response || typeof response !== "object") throw new Error("PayPal Sandbox returned an invalid invoice response.");
+  const result = response as { id?: unknown; href?: unknown; rel?: unknown };
+  if (typeof result.id === "string" && /^INV2-[A-Z0-9-]+$/.test(result.id)) return result.id;
+  if (result.rel === "self" && typeof result.href === "string") {
+    try {
+      const link = new URL(result.href);
+      const match = /^\/v2\/invoicing\/invoices\/(INV2-[A-Z0-9-]+)$/.exec(link.pathname);
+      if (link.protocol === "https:" && ["api.sandbox.paypal.com", "api-m.sandbox.paypal.com"].includes(link.hostname) && match) return match[1];
+    } catch {
+      throw new Error("PayPal Sandbox returned an invalid invoice link.");
+    }
+  }
+  throw new Error("PayPal Sandbox did not return a valid invoice ID.");
+}
+
+export async function createSandboxInvoice(input: InvoiceInput): Promise<{ id: string; status: string }> {
   const amount = Number(input.amount).toFixed(2);
-  return paypalRequest("/v2/invoicing/invoices", {
+  const response = await paypalRequest("/v2/invoicing/invoices", {
     method: "POST",
     headers: { "PayPal-Request-Id": invoiceRequestId(input) },
     body: JSON.stringify({
@@ -67,6 +83,7 @@ export async function createSandboxInvoice(input: InvoiceInput): Promise<unknown
       ],
     }),
   });
+  return { id: invoiceIdFromCreateResponse(response), status: "DRAFT" };
 }
 
 export async function getSandboxInvoice(id: string): Promise<unknown> {

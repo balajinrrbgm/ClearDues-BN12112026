@@ -1,0 +1,7 @@
+{
+  "recipientName": "Sandbox Test",
+  "recipientEmail": "recipient@example.test",
+  "amount": "12.00",
+  "currency": "USD",
+  "dueDate": "2026-12-01"
+}

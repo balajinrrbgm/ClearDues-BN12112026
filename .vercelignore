@@ -1,0 +1,16 @@
+.env
+.env.*
+.vercel/
+.git/
+node_modules/
+data/
+dist/
+coverage/
+*.sqlite
+*.sqlite-*
+*.db
+*.pem
+*.key
+secrets/
+docs/video/
+docs/hackathon/

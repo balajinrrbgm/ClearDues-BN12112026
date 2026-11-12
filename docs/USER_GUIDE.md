@@ -13,6 +13,10 @@ Use Node.js 22+ and npm. From this folder, run `npm run setup`, create `.env` fr
 5. Edit the neutral starter before using it. ClearDues does not send this message.
 6. Export a PDF evidence packet or JSON record.
 
+## Microsoft Foundry
+
+Set `AZURE_AI_PROJECT_ENDPOINT` and `AZURE_AI_API_KEY` in the ignored `.env` file. Set `AZURE_AI_MODEL_DEPLOYMENT` to the deployment name if it differs from `gpt-6.1-terra`. Restart the API after changing `.env`. The adapter uses the resource-level Responses API and requires a resource key and a compatible deployed model; project-scoped operations may require Microsoft Entra ID.
+
 ## PayPal Sandbox
 
 Add `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` from a test REST app to `.env`, then restart the API. Configure synthetic recipient information only. Review invoice details, confirm creation of a Sandbox draft, and separately confirm before sending. Refresh fetches the latest Sandbox state. The API never uses PayPal live hosts.

@@ -238,7 +238,7 @@ export default function App() {
               <section className="work-panel review-panel">
                 <div className="panel-heading review-heading">
                   <div><span className="section-index accent-index">02</span><div><h2>AI review</h2><p>Extract only what the record supports.</p></div></div>
-                  <span className={`ai-badge ${health?.aiConfigured ? "ai-ready" : "ai-demo"}`}><Sparkles size={13} /> {health?.aiConfigured ? "CONNECTED" : "DEMO"}</span>
+                  <span className={`ai-badge ${health?.aiConfigured ? "ai-ready" : "ai-demo"}`}><Sparkles size={13} /> {health?.aiConfigured ? "CONFIGURED" : "DEMO"}</span>
                 </div>
                 <div className="ai-disclosure"><ShieldCheck size={15} /><span>Evidence is sent only to your configured provider. No provider means no model request.</span></div>
                 <button className="button button-dark analyze-button" onClick={runAnalysis} disabled={busy === "analysis"}>

@@ -4,7 +4,7 @@ import initSqlJs, { type Database } from "sql.js";
 import type { Evidence, AnalysisResult } from "./domain.js";
 
 const defaultDatabasePath = resolve(process.cwd(), "data", "cleardues.sqlite");
-const seed: Evidence[] = [
+export const seed: Evidence[] = [
   {
     id: "ev-invoice-001",
     kind: "invoice",
